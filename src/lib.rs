@@ -34,3 +34,5 @@ pub mod constants;
 
 pub use server::BifrostServer;
 pub use tpu_client::TpuConnectionManager;
+
+pub type Slot = u64;

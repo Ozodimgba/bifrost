@@ -5,12 +5,14 @@ mod session;
 
 pub use cert::load_certificates;
 pub use session::handle_session;
+use tokio::time::sleep;
 
+use crate::tpu_client::{LeaderTracker, TpuConnectionManager};
 use anyhow::{Context, Result};
 use log::info;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use crate::tpu_client::TpuConnectionManager;
+use std::time::Duration;
 
 /// WebTransport server that accepts connections and forwards transactions to TPU.
 pub struct BifrostServer {
@@ -49,8 +51,25 @@ impl BifrostServer {
         let (cert_chain, private_key) = load_certificates(&self.cert_path, &self.key_path)
             .context("Failed to load certificates")?;
 
-        let tpu_manager =
-            Arc::new(TpuConnectionManager::new().context("Failed to create TPU manager")?);
+        // Initialize the LeaderTracker
+        let leader_tracker = Arc::new(LeaderTracker::new().await);
+
+        // Spawn the slot_updates listener as a background task
+        let leader_tracker_clone = leader_tracker.clone();
+        tokio::spawn(async move { LeaderTracker::run(leader_tracker_clone).await });
+
+        // Spawn task to update leader sockets list every minute
+        let leader_tracker_clone = leader_tracker.clone();
+        tokio::spawn(async move {
+            LeaderTracker::update_leader_sockets(leader_tracker_clone).await;
+
+            sleep(Duration::from_secs(60)).await;
+        });
+
+        let tpu_manager = Arc::new(
+            TpuConnectionManager::new(leader_tracker.clone())
+                .context("Failed to create TPU manager")?,
+        );
 
         let mut server = web_transport_quinn::ServerBuilder::new()
             .with_addr(self.addr)
@@ -96,7 +115,8 @@ mod tests {
     #[tokio::test]
     async fn test_tpu_client_creation() {
         use crate::tpu_client::TpuConnectionManager;
-        let result = TpuConnectionManager::new();
+        let leader_tracker = Arc::new(LeaderTracker::new().await);
+        let result = TpuConnectionManager::new(leader_tracker);
         match result {
             Ok(_) => println!("TPU client created successfully"),
             Err(e) => panic!("TPU client failed: {}", e),
