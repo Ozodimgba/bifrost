@@ -1,0 +1,10 @@
+{
+	"semi": false,
+	"singleQuote": true,
+	"indent": [
+		"error",
+		"tab"
+	],
+	"useTabs": true,
+	"tabWidth": 2
+}
