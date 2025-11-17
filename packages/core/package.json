@@ -1,0 +1,65 @@
+{
+	"name": "@bifrost/core",
+	"version": "0.0.0",
+	"type": "module",
+	"description": "A JS client to the bifrost wasm module",
+	"private": false,
+	"main": "dist/lib/cjs/src/index.js",
+	"module": "dist/lib/mjs/src/index.js",
+	"types": "dist/lib/mjs/src/index.d.ts",
+	"scripts": {
+		"prepack": "npm run build",
+		"build:clean": "rm -rf dist/*",
+		"build:clean:cjs": "rm -rf dist/lib/cjs/*",
+		"build:clean:mjs": "rm -rf dist/lib/mjs/*",
+		"build:alias:cjs": "tsc-alias -p tsconfig-cjs.json",
+		"build:alias:mjs": "tsc-alias -p tsconfig.json",
+		"build:post:cjs": "./src/scripts/build_support_cjs.sh",
+		"build:post:mjs": "./src/scripts/build_support_mjs.sh",
+		"build:cjs": "npm run build:clean:cjs && tsc -p tsconfig-cjs.json && npm run build:alias:cjs && npm run build:post:cjs",
+		"build:mjs": "npm run build:clean:mjs && tsc -p tsconfig.json && npm run build:alias:mjs && npm run build:post:mjs",
+		"build": "npm run build:cjs && npm run build:mjs",
+		"start": "npm run build && node dist/lib/mjs/src/index.js",
+		"test:cjs": "npm run build:cjs && npx mocha --recursive dist/lib/cjs/**/*.test.js",
+		"test:cjs:custom": "npm run build:cjs && npx mocha",
+		"test:mjs": "npm run build:mjs && npx mocha --recursive dist/lib/mjs/**/*.test.js",
+		"test": "npm run build && npm run test:cjs && npm run test:mjs",
+		"lint": "npx eslint src/**/*.{ts,js} --ext .ts,.js"
+	},
+	"keywords": [
+    "solana", 
+    "quic", 
+    "webtransport", 
+    "wasm"
+  ],
+	"author": "readylayerone_",
+	"license": "MIT",
+	"devDependencies": {
+		"@types/mocha": "^10.0.1",
+		"@types/node": "^18.15.11",
+		"@typescript-eslint/eslint-plugin": "^5.57.0",
+		"@typescript-eslint/parser": "^5.57.0",
+		"eslint": "^8.36.0",
+		"eslint-config-prettier": "^8.8.0",
+		"eslint-import-resolver-typescript": "^3.5.4",
+		"eslint-plugin-import": "^2.27.5",
+		"eslint-plugin-mocha": "^10.1.0",
+		"eslint-plugin-node": "^11.1.0",
+		"mocha": "^10.2.0",
+		"ts-node": "^10.9.1",
+		"tsc-alias": "^1.8.5",
+		"typescript": "^5.0.2"
+	},
+	"engines": {
+		"node": ">=12.0.0"
+	},
+	"imports": {
+		"#utils/*": "./src/utils/*"
+	},
+	"exports": {
+		".": {
+			"import": "./dist/lib/mjs/src/index.js",
+			"require": "./dist/lib/cjs/src/index.js"
+		}
+	}
+}
